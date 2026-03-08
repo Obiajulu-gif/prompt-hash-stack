@@ -1,7 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { getNetworkInstance, X402PaymentVerifier } from "x402-stacks";
+import {
+  getNetworkInstance,
+  X402PaymentVerifier,
+  type PaymentRequirementsV2,
+} from "x402-stacks";
 import { useStacksWallet } from "@/components/stacks-wallet-provider";
 import {
   buildBuyArgs,
@@ -146,11 +150,7 @@ export function ListingsBrowser({ config }: { config: PublicAppConfig }) {
       }
 
       const paymentRequired = (await firstAttempt.json()) as {
-        accepts: Array<{
-          amount: string;
-          asset: string;
-          payTo: string;
-        }>;
+        accepts: PaymentRequirementsV2[];
       };
 
       const accepted = paymentRequired.accepts[0];

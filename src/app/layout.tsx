@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { IBM_Plex_Mono, Space_Grotesk } from "next/font/google";
+import { Toaster } from "sonner";
 import "./globals.css";
 import { StacksWalletProvider } from "@/components/stacks-wallet-provider";
-import { Toaster } from "@/components/ui/sonner";
 
 const display = Space_Grotesk({
   subsets: ["latin"],

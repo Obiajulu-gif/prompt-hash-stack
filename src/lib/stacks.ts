@@ -7,8 +7,8 @@ import {
   principalCV,
   uintCV,
 } from "@stacks/transactions";
-import type { StacksMainnet, StacksTestnet } from "@stacks/network";
 import type { PaymentAsset } from "@/lib/marketplace";
+import { getNetworkInstance } from "x402-stacks";
 
 export function normalizeTxHash(raw: string): string {
   const hex = raw.replace(/^0x/i, "").toLowerCase();
@@ -108,7 +108,7 @@ export async function createUnsignedPaymentTransaction(params: {
   tokenContract: string | null;
   publicKey: string;
   memo?: string;
-  networkInstance: StacksMainnet | StacksTestnet;
+  networkInstance: ReturnType<typeof getNetworkInstance>;
 }) {
   if (params.asset === "STX") {
     const tx = await makeUnsignedSTXTokenTransfer({

@@ -1,7 +1,7 @@
 import "server-only";
 
-import { deserializeCV, serializeCV, type ClarityValue } from "@stacks/transactions";
-import { getContractParts, getHiroApiBaseUrl, getHiroHeaders } from "@/lib/app-config";
+import { deserializeCV, serializeCV } from "@stacks/transactions";
+import { getContractParts, getHiroApiBaseUrl } from "@/lib/app-config";
 
 export type HiroTransaction = {
   tx_id: string;
@@ -17,17 +17,20 @@ export type HiroTransaction = {
   error?: string;
 };
 
-function encodeClarityArgument(value: ClarityValue) {
+function encodeClarityArgument(value: unknown) {
   return `0x${Buffer.from(serializeCV(value)).toString("hex")}`;
 }
 
 async function hiroFetch<T>(path: string, init?: RequestInit): Promise<T> {
+  const headers = new Headers(init?.headers);
+  const apiKey = process.env.HIRO_API_KEY?.trim();
+  if (apiKey) {
+    headers.set("x-api-key", apiKey);
+  }
+
   const response = await fetch(`${getHiroApiBaseUrl()}${path}`, {
     ...init,
-    headers: {
-      ...getHiroHeaders(),
-      ...(init?.headers ?? {}),
-    },
+    headers,
     cache: "no-store",
   });
 
@@ -41,7 +44,7 @@ async function hiroFetch<T>(path: string, init?: RequestInit): Promise<T> {
 
 export async function callReadOnlyContract(
   functionName: string,
-  args: ClarityValue[],
+  args: unknown[],
   sender?: string,
 ) {
   const { address, name } = getContractParts();
