@@ -1,0 +1,57 @@
+# Byte-compiled / cache files
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Environment and secrets
+.env
+.env.*
+*.env
+*.secrets
+private_keys.json
+agent*_data.json
+
+# Packaging / build artifacts
+dist/
+build/
+*.egg-info/
+pip-wheel-metadata/
+__pypackages__/
+
+# Editors and tooling
+.idea/
+.vscode/
+.DS_Store
+.python-version
+.ipynb_checkpoints/
+.cache/
+.ruff_cache/
+.mypy_cache/
+
+# Logs and coverage
+*.log
+.log/
+.pytest_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+
+# Databases and misc artifacts
+*.db
+*.sqlite
+*.sqlite3
+*.pid
+*.bak
+
+# Frontend/node (if added later)
+node_modules/
+*.tsbuildinfo
+
+RENDER_DEPLOY.md

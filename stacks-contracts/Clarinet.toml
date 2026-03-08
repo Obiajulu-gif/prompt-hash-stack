@@ -1,0 +1,44 @@
+[project]
+name = "prompt-hash-x402-contracts"
+description = "Stacks marketplace and x402 access contracts for PromptHash."
+authors = ["Codex"]
+telemetry = false
+cache_dir = "./.cache"
+
+# [contracts.counter]
+# path = "contracts/counter.clar"
+# epoch = "latest"
+
+# Check-checker settings:
+# trusted_sender: if true, inputs are trusted after tx_sender has been checked.
+# trusted_caller: if true, inputs are trusted after contract-caller has been checked.
+# callee_filter: if true, untrusted data may be passed into a private function without a
+# warning, if it gets checked inside. This check will also propagate up to the
+# caller.
+# More informations: https://www.hiro.so/blog/new-safety-checks-in-clarinet
+
+[repl.analysis]
+passes = ["check_checker"]
+check_checker = { trusted_sender = false, trusted_caller = false, callee_filter = false }
+
+[contracts]
+
+[contracts.sip010-ft-trait]
+path = "contracts/sip010-ft-trait.clar"
+clarity_version = 4
+epoch = "latest"
+
+[contracts.mock-sbtc-token]
+path = "contracts/mock-sbtc-token.clar"
+clarity_version = 4
+epoch = "latest"
+
+[contracts.mock-usdcx-token]
+path = "contracts/mock-usdcx-token.clar"
+clarity_version = 4
+epoch = "latest"
+
+[contracts.prompt-marketplace]
+path = "contracts/prompt-marketplace.clar"
+clarity_version = 4
+epoch = "latest"

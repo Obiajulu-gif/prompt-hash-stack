@@ -1,0 +1,81 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 22 32 43;
+    --foreground: 239 246 255;
+    --surface: 31 41 55;
+    --surface-strong: 15 23 42;
+    --surface-soft: 51 65 85;
+    --card: 15 23 42;
+    --card-foreground: 239 246 255;
+    --popover: 15 23 42;
+    --popover-foreground: 239 246 255;
+    --primary: 251 191 36;
+    --primary-foreground: 17 24 39;
+    --secondary: 125 211 252;
+    --secondary-foreground: 12 18 26;
+    --muted: 71 85 105;
+    --muted-foreground: 191 219 254;
+    --accent: 16 185 129;
+    --accent-foreground: 240 253 250;
+    --destructive: 248 113 113;
+    --destructive-foreground: 255 241 242;
+    --border: 71 85 105;
+    --input: 51 65 85;
+    --ring: 251 191 36;
+    --radius: 1rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    min-height: 100vh;
+    background:
+      radial-gradient(circle at top left, rgba(251, 191, 36, 0.18), transparent 28%),
+      radial-gradient(circle at top right, rgba(34, 211, 238, 0.18), transparent 32%),
+      linear-gradient(180deg, rgb(15 23 42), rgb(17 24 39) 42%, rgb(2 6 23));
+    color: rgb(var(--foreground));
+    font-family: var(--font-display), sans-serif;
+  }
+
+  input,
+  textarea,
+  select,
+  button {
+    font: inherit;
+  }
+
+  code,
+  pre {
+    font-family: var(--font-mono), monospace;
+  }
+}
+
+@layer utilities {
+  .page-shell {
+    @apply mx-auto flex w-full max-w-7xl flex-col gap-10 px-4 pb-16 pt-8 sm:px-6 lg:px-8;
+  }
+
+  .panel {
+    @apply rounded-[1.5rem] border border-slate-700/80 bg-slate-900/70 p-6 shadow-[0_20px_80px_rgba(2,6,23,0.45)] backdrop-blur;
+  }
+
+  .panel-soft {
+    @apply rounded-[1.25rem] border border-slate-700/60 bg-slate-950/50 p-5;
+  }
+
+  .label-muted {
+    @apply text-xs uppercase tracking-[0.24em] text-sky-200/70;
+  }
+}

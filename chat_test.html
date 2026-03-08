@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Secret Network AI Chat Test</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      #chat-container {
+        border: 1px solid #ddd;
+        padding: 10px;
+        margin-bottom: 10px;
+        min-height: 200px;
+      }
+      #message-input {
+        width: 100%;
+        padding: 10px;
+        margin-bottom: 10px;
+      }
+      #send-btn {
+        padding: 10px 20px;
+        background-color: #4caf50;
+        color: white;
+        border: none;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Prompthash ASI Chat</h1>
+    <div id="chat-container"></div>
+    <input type="text" id="message-input" placeholder="Enter your message" />
+    <button id="send-btn">Send</button>
+
+    <script>
+      const API_URL = "https://prompthash-asi.onrender.com/api/chat";
+      const chatContainer = document.getElementById("chat-container");
+      const messageInput = document.getElementById("message-input");
+      const sendBtn = document.getElementById("send-btn");
+
+      function formatReply(text) {
+        if (!text) return "(no reply)";
+        const cleaned = text.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
+        return cleaned || "(no reply)";
+      }
+
+      function addMessage(text, sender) {
+        const messageEl = document.createElement("div");
+        const senderEl = document.createElement("strong");
+        senderEl.textContent = `${sender}: `;
+
+        const pre = document.createElement("pre");
+        pre.style.whiteSpace = "pre-wrap";
+        pre.style.margin = "4px 0 0 0";
+        pre.textContent = text;
+
+        messageEl.appendChild(senderEl);
+        messageEl.appendChild(pre);
+        messageEl.style.marginBottom = "10px";
+        chatContainer.appendChild(messageEl);
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+      }
+
+      async function sendMessage() {
+        const message = messageInput.value.trim();
+        if (!message) return;
+
+        // Display user message
+        addMessage(message, "You");
+        messageInput.value = "";
+
+        try {
+          const response = await fetch(API_URL, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              sender: "chat_test",
+              message,
+              model: "z-ai/glm-4.5-air",
+            }),
+          });
+
+          if (!response.ok) {
+            throw new Error("Network response was not ok");
+          }
+
+          const data = await response.json();
+          const aiReply =
+            data.reply || data.response || data.Response || JSON.stringify(data);
+          addMessage(formatReply(aiReply), "AI");
+        } catch (error) {
+          console.error("Error:", error);
+          addMessage(`Error: ${error.message}`, "System");
+        }
+      }
+
+      sendBtn.addEventListener("click", sendMessage);
+      messageInput.addEventListener("keypress", (e) => {
+        if (e.key === "Enter") {
+          sendMessage();
+        }
+      });
+    </script>
+  </body>
+</html>

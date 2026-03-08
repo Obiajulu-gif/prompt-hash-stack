@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prompt Agent Chat + Prompt Improver</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --card: #111827;
+            --accent: #22c55e;
+            --accent-2: #38bdf8;
+            --text: #e5e7eb;
+            --muted: #9ca3af;
+            --border: #1f2937;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            padding: 24px;
+            background: radial-gradient(circle at 20% 20%, rgba(34,197,94,0.12), transparent 25%),
+                        radial-gradient(circle at 80% 0%, rgba(56,189,248,0.12), transparent 22%),
+                        var(--bg);
+            color: var(--text);
+            font-family: "Segoe UI", "SF Pro Text", system-ui, -apple-system, sans-serif;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        h1 {
+            margin: 0 0 8px 0;
+            font-size: 32px;
+            letter-spacing: -0.5px;
+        }
+        .subhead {
+            color: var(--muted);
+            margin: 0 0 24px 0;
+        }
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.35);
+        }
+        .status-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .pill {
+            padding: 6px 12px;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            background: rgba(255,255,255,0.04);
+            color: var(--text);
+            font-size: 13px;
+        }
+        .pill.ok { border-color: rgba(34,197,94,0.4); color: var(--accent); }
+        .pill.bad { border-color: rgba(248,113,113,0.5); color: #f87171; }
+        button {
+            background: linear-gradient(135deg, var(--accent), #16a34a);
+            color: #0b0f1a;
+            border: none;
+            border-radius: 10px;
+            padding: 12px 18px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.1s ease, box-shadow 0.2s ease;
+            box-shadow: 0 10px 30px rgba(34,197,94,0.35);
+        }
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        button:hover:not(:disabled) { transform: translateY(-1px); }
+        label {
+            display: block;
+            margin-bottom: 6px;
+            color: var(--muted);
+            font-size: 14px;
+            letter-spacing: 0.2px;
+        }
+        input, textarea, select {
+            width: 100%;
+            background: #0b1220;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px;
+            color: var(--text);
+            font-size: 15px;
+            outline: none;
+        }
+        input:focus, textarea:focus { border-color: var(--accent-2); }
+        textarea { min-height: 100px; resize: vertical; }
+        .form-row { display: flex; gap: 12px; flex-wrap: wrap; }
+        .form-row .col { flex: 1 1 200px; }
+        .chat-log {
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px;
+            background: #0b1220;
+            min-height: 200px;
+            max-height: 420px;
+            overflow-y: auto;
+        }
+        .bubble {
+            margin-bottom: 12px;
+            padding: 12px;
+            border-radius: 12px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--border);
+        }
+        .bubble.user { border-color: rgba(56,189,248,0.4); }
+        .bubble.assistant { border-color: rgba(34,197,94,0.4); }
+        .bubble .meta {
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: 1px;
+            color: var(--muted);
+            margin-bottom: 6px;
+        }
+        .error {
+            background: rgba(248,113,113,0.1);
+            border: 1px solid rgba(248,113,113,0.6);
+            color: #fecdd3;
+            padding: 10px 12px;
+            border-radius: 12px;
+            margin-top: 12px;
+        }
+        .output-box {
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: #0b1220;
+            padding: 12px;
+            min-height: 120px;
+            white-space: pre-wrap;
+            line-height: 1.5;
+        }
+        .muted { color: var(--muted); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Prompt Agent + Prompt Improver</h1>
+        <p class="subhead">Chat with the prompthash agent or improve a draft prompt using the dedicated improver.</p>
+
+        <div class="card">
+            <div class="status-row">
+                <button onclick="checkHealth()" id="health-btn">Check chat agent</button>
+                <span id="health-pill" class="pill">Chat status: unknown</span>
+                <span class="pill">Chat API: <code>{{ agent_api }}</code></span>
+                <span class="pill">Model API: <code>{{ models_api }}</code></span>
+            </div>
+            <div class="status-row" style="margin-top: 10px;">
+                <button onclick="checkImproverHealth()" id="improver-health-btn">Check improver</button>
+                <span id="improver-health-pill" class="pill">Improver status: unknown</span>
+                <span class="pill">Improver API: <code>{{ improver_api }}</code></span>
+            </div>
+        </div>
+
+        <div class="card">
+            <form id="chat-form" onsubmit="sendChat(event)">
+                <div class="form-row">
+                    <div class="col">
+                        <label for="sender">Conversation ID (optional)</label>
+                        <input id="sender" name="sender" type="text" placeholder="frontend_user" autocomplete="off">
+                    </div>
+                    <div class="col" style="min-width: 220px; max-width: 320px;">
+                        <label for="model-select">Model</label>
+                        <select id="model-select" name="model">
+                            <option value="" selected>Loading models...</option>
+                        </select>
+                        <div id="model-hint" class="muted" style="margin-top: 6px; font-size: 13px;"></div>
+                    </div>
+                    <div class="col" style="min-width: 250px;">
+                        <label for="message">Message</label>
+                        <textarea id="message" name="message" placeholder="Ask me anything..." required></textarea>
+                    </div>
+                </div>
+                <div style="margin-top: 14px; display: flex; gap: 12px; align-items: center;">
+                    <button type="submit" id="send-btn">Send to agent</button>
+                    <span id="error-box" class="error" style="display:none;"></span>
+                </div>
+            </form>
+        </div>
+
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <h3 style="margin: 0;">Prompt Improver</h3>
+                <span id="improve-meta" class="pill">Target: text · Model: pending</span>
+            </div>
+            <form id="improve-form" onsubmit="sendImprove(event)">
+                <div class="form-row">
+                    <div class="col" style="min-width: 260px;">
+                        <label for="improve-text">Prompt to improve</label>
+                        <textarea id="improve-text" name="improve-text" placeholder="Paste a draft prompt to refine..." required></textarea>
+                    </div>
+                    <div class="col" style="max-width: 220px;">
+                        <label for="target">Target</label>
+                        <select id="target" name="target">
+                            <option value="text" selected>Text</option>
+                            <option value="image">Image</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="margin-top: 14px; display: flex; gap: 12px; align-items: center;">
+                    <button type="submit" id="improve-btn">Improve prompt</button>
+                    <span id="improve-error" class="error" style="display:none;"></span>
+                </div>
+            </form>
+            <div style="margin-top: 14px;">
+                <label>Improved prompt</label>
+                <div id="improved-output" class="output-box">(waiting for a request)</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <h3 style="margin: 0;">Conversation</h3>
+                <span id="message-count" class="pill">Messages: 0</span>
+            </div>
+            <div id="chat-log" class="chat-log"></div>
+        </div>
+    </div>
+
+    <script>
+        function escapeHtml(text) {
+            if (!text && text !== 0) return "";
+            const div = document.createElement("div");
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function renderHistory(history, total) {
+            const log = document.getElementById("chat-log");
+            if (!history || history.length === 0) {
+                log.innerHTML = '<div class="bubble"><div class="meta">No messages yet</div></div>';
+                document.getElementById("message-count").textContent = `Messages: ${total || 0}`;
+                return;
+            }
+            log.innerHTML = history
+                .map(item => `
+                    <div class="bubble ${item.role}">
+                        <div class="meta">${item.role}</div>
+                        <div>${escapeHtml(item.text)}</div>
+                    </div>
+                `)
+                .join("");
+            document.getElementById("message-count").textContent = `Messages: ${total}`;
+            log.scrollTop = log.scrollHeight;
+        }
+
+        async function checkHealth() {
+            const btn = document.getElementById("health-btn");
+            const pill = document.getElementById("health-pill");
+            btn.disabled = true;
+            pill.textContent = "Checking...";
+            try {
+                const res = await fetch("/api/health");
+                const data = await res.json();
+                if (data.ok) {
+                    pill.textContent = `Status: ${data.agent.status} · total ${data.agent.total_messages}`;
+                    pill.className = "pill ok";
+                } else {
+                    pill.textContent = "Agent offline";
+                    pill.className = "pill bad";
+                }
+            } catch (err) {
+                pill.textContent = "Health check failed";
+                pill.className = "pill bad";
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        async function sendChat(event) {
+            event.preventDefault();
+            const btn = document.getElementById("send-btn");
+            const errorBox = document.getElementById("error-box");
+            const sender = document.getElementById("sender").value || "frontend_user";
+            const message = document.getElementById("message").value;
+            const model = document.getElementById("model-select").value || null;
+
+            errorBox.style.display = "none";
+            btn.disabled = true;
+            btn.textContent = "Sending...";
+
+            try {
+                const res = await fetch("/api/chat", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ message, sender, model })
+                });
+                const data = await res.json();
+
+                if (res.ok && !data.error) {
+                    renderHistory(data.history, data.total_messages);
+                    document.getElementById("message").value = "";
+                } else {
+                    errorBox.textContent = data.error || "Something went wrong.";
+                    errorBox.style.display = "block";
+                }
+            } catch (err) {
+                errorBox.textContent = err.message;
+                errorBox.style.display = "block";
+            } finally {
+                btn.disabled = false;
+                btn.textContent = "Send to agent";
+            }
+        }
+
+        async function loadModels() {
+            const select = document.getElementById("model-select");
+            const hint = document.getElementById("model-hint");
+            select.innerHTML = '<option value=\"\" selected>Loading...</option>';
+            hint.textContent = "";
+            try {
+                const res = await fetch("/api/models");
+                const data = await res.json();
+                if (!res.ok || data.error) {
+                    throw new Error(data.error || "Unable to load models");
+                }
+
+                const { models = [], model_details = {}, categories = {} } = data;
+                if (!models.length) {
+                    throw new Error("No models returned");
+                }
+
+                const byCategory = Object.entries(categories || {});
+                if (byCategory.length) {
+                    select.innerHTML = "";
+                    byCategory.forEach(([category, names]) => {
+                        if (!names || !names.length) return;
+                        const optgroup = document.createElement("optgroup");
+                        optgroup.label = category;
+                        names.forEach(name => {
+                            const option = document.createElement("option");
+                            option.value = name;
+                            const detail = model_details[name] || {};
+                            const display = detail.display_name || name;
+                            option.textContent = `${display} (${name})`;
+                            optgroup.appendChild(option);
+                        });
+                        select.appendChild(optgroup);
+                    });
+                } else {
+                    select.innerHTML = models
+                        .map(name => {
+                            const detail = model_details[name] || {};
+                            const display = detail.display_name || name;
+                            return `<option value=\"${name}\">${display} (${name})</option>`;
+                        })
+                        .join("");
+                }
+                hint.textContent = `Loaded ${models.length} models (ASI)`;
+            } catch (err) {
+                select.innerHTML = '<option value="" selected>Default agent model</option>';
+                hint.textContent = err.message;
+            }
+        }
+
+        async function checkImproverHealth() {
+            const btn = document.getElementById("improver-health-btn");
+            const pill = document.getElementById("improver-health-pill");
+            btn.disabled = true;
+            pill.textContent = "Checking...";
+            try {
+                const res = await fetch("/api/improver/health");
+                const data = await res.json();
+                if (data.ok) {
+                    pill.textContent = `Status: ${data.agent.status} · total ${data.agent.total_requests}`;
+                    pill.className = "pill ok";
+                } else {
+                    pill.textContent = "Improver offline";
+                    pill.className = "pill bad";
+                }
+            } catch (err) {
+                pill.textContent = "Improver check failed";
+                pill.className = "pill bad";
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        async function sendImprove(event) {
+            event.preventDefault();
+            const btn = document.getElementById("improve-btn");
+            const errorBox = document.getElementById("improve-error");
+            const promptText = document.getElementById("improve-text").value;
+            const target = document.getElementById("target").value;
+
+            errorBox.style.display = "none";
+            btn.disabled = true;
+            btn.textContent = "Improving...";
+
+            try {
+                const res = await fetch("/api/improve", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ prompt: promptText, target })
+                });
+                const data = await res.json();
+
+                if (res.ok && !data.error) {
+                    document.getElementById("improved-output").textContent = data.response || "(no response)";
+                    document.getElementById("improve-meta").textContent = `Target: ${data.target || target} · Model: ${data.model || "unknown"}`;
+                    document.getElementById("improve-text").focus();
+                } else {
+                    errorBox.textContent = data.error || "Something went wrong.";
+                    errorBox.style.display = "block";
+                }
+            } catch (err) {
+                errorBox.textContent = err.message;
+                errorBox.style.display = "block";
+            } finally {
+                btn.disabled = false;
+                btn.textContent = "Improve prompt";
+            }
+        }
+
+        checkHealth();
+        checkImproverHealth();
+        loadModels();
+        renderHistory([], 0);
+    </script>
+</body>
+</html>
