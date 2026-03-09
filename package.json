@@ -4,11 +4,14 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build --webpack",
+    "build": "next build",
     "start": "next start",
     "test": "node --test --import tsx \"tests/**/*.test.ts\"",
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "typecheck": "tsc --noEmit",
+    "contract:check": "cmd /c \"cd /d stacks-contracts && clarinet check -m Clarinet.toml\"",
+    "contract:test": "cmd /c \"cd /d stacks-contracts && npm test\""
   },
   "dependencies": {
     "@ai-sdk/openai": "^1.2.5",

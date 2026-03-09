@@ -1,11 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import {
-  getNetworkInstance,
-  X402PaymentVerifier,
-  type PaymentRequirementsV2,
-} from "x402-stacks";
+import { type PaymentRequirementsV2 } from "x402-stacks";
 import { useStacksWallet } from "@/components/stacks-wallet-provider";
 import {
   buildBuyArgs,
@@ -18,6 +14,8 @@ import {
   type PublicAppConfig,
 } from "@/lib/marketplace";
 import {
+  createNetworkInstance,
+  createX402PaymentPayload,
   createUnsignedPaymentTransaction,
   extractSignedTransaction,
   getAssetColor,
@@ -175,7 +173,7 @@ export function ListingsBrowser({ config }: { config: PublicAppConfig }) {
         tokenContract: accepted.asset === "STX" ? null : accepted.asset,
         publicKey,
         memo: `x402:${listing.id}`,
-        networkInstance: getNetworkInstance(config.network),
+        networkInstance: createNetworkInstance(config.network),
       });
 
       setMessages(prev => ({ ...prev, [listing.id]: "Sign the x402 payment in Leather..." }));
@@ -190,10 +188,7 @@ export function ListingsBrowser({ config }: { config: PublicAppConfig }) {
         throw new Error("Leather did not return a signed payment transaction.");
       }
 
-      const paymentPayload = X402PaymentVerifier.createPaymentPayload(
-        signedTransaction,
-        accepted,
-      );
+      const paymentPayload = createX402PaymentPayload(signedTransaction, accepted);
 
       const secondAttempt = await fetch(`/api/agent/listings/${listing.id}/content`, {
         method: "GET",

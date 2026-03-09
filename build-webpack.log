@@ -1,0 +1,19 @@
+▲ Next.js 16.1.6 (webpack)
+
+  Creating an optimized production build ...
+⚠ Compiled with warnings in 12.0min
+
+./src/lib/stacks.ts
+Attempted import error: 'bytesToHex' is not exported from '@stacks/transactions' (imported as 'bytesToHex').
+
+Import trace for requested module:
+./src/lib/stacks.ts
+./src/components/listings-browser.tsx
+
+./src/lib/stacks.ts
+Attempted import error: 'bytesToHex' is not exported from '@stacks/transactions' (imported as 'bytesToHex').
+
+Import trace for requested module:
+./src/lib/stacks.ts
+./src/components/listings-browser.tsx
+

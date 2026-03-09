@@ -7,8 +7,8 @@ import {
   principalCV,
   uintCV,
 } from "@stacks/transactions";
+import { createNetwork } from "@stacks/network";
 import type { PaymentAsset } from "@/lib/marketplace";
-import { getNetworkInstance } from "x402-stacks";
 
 export function normalizeTxHash(raw: string): string {
   const hex = raw.replace(/^0x/i, "").toLowerCase();
@@ -108,7 +108,7 @@ export async function createUnsignedPaymentTransaction(params: {
   tokenContract: string | null;
   publicKey: string;
   memo?: string;
-  networkInstance: ReturnType<typeof getNetworkInstance>;
+  networkInstance: ReturnType<typeof createNetwork>;
 }) {
   if (params.asset === "STX") {
     const tx = await makeUnsignedSTXTokenTransfer({
@@ -152,4 +152,21 @@ export function getAssetColor(asset: PaymentAsset) {
   if (asset === "SBTC") return "bg-amber-400/15 text-amber-200 border-amber-300/30";
   if (asset === "USDCX") return "bg-emerald-400/15 text-emerald-200 border-emerald-300/30";
   return "bg-sky-400/15 text-sky-200 border-sky-300/30";
+}
+
+export function createNetworkInstance(network: "mainnet" | "testnet") {
+  return createNetwork(network);
+}
+
+export function createX402PaymentPayload(
+  signedTransaction: string,
+  accepted: unknown,
+) {
+  return {
+    x402Version: 2 as const,
+    accepted,
+    payload: {
+      transaction: signedTransaction,
+    },
+  };
 }

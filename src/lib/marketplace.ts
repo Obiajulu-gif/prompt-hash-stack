@@ -1,12 +1,3 @@
-import {
-  BTCtoSats,
-  microSTXtoSTX,
-  microUSDCxToUSDCx,
-  satsToBTC,
-  STXtoMicroSTX,
-  USDCxToMicroUSDCx,
-} from "x402-stacks";
-
 export const PAYMENT_ASSET_CODES = {
   STX: 1,
   SBTC: 2,
@@ -89,17 +80,12 @@ export function normalizeAsset(value: string | null | undefined): PaymentAsset {
 }
 
 export function formatAtomicAmount(amountAtomic: string | number, asset: PaymentAsset) {
-  const raw = typeof amountAtomic === "number" ? amountAtomic.toString() : amountAtomic;
-
-  if (asset === "SBTC") {
-    return satsToBTC(BigInt(raw));
-  }
-
-  if (asset === "USDCX") {
-    return microUSDCxToUSDCx(BigInt(raw));
-  }
-
-  return microSTXtoSTX(BigInt(raw));
+  const decimals = asset === "SBTC" ? 8 : 6;
+  const raw = String(amountAtomic ?? "0");
+  const padded = raw.padStart(decimals + 1, "0");
+  const whole = padded.slice(0, -decimals);
+  const fraction = padded.slice(-decimals).replace(/0+$/, "");
+  return fraction ? `${whole}.${fraction}` : whole;
 }
 
 export function parseDisplayAmount(amount: string, asset: PaymentAsset): string {
@@ -108,15 +94,11 @@ export function parseDisplayAmount(amount: string, asset: PaymentAsset): string 
     throw new Error("Amount must be numeric.");
   }
 
-  if (asset === "SBTC") {
-    return BTCtoSats(normalized).toString();
-  }
-
-  if (asset === "USDCX") {
-    return USDCxToMicroUSDCx(normalized).toString();
-  }
-
-  return STXtoMicroSTX(normalized).toString();
+  const decimals = asset === "SBTC" ? 8 : 6;
+  const [whole, fraction = ""] = normalized.split(".");
+  const fractionDigits = fraction.slice(0, decimals).padEnd(decimals, "0");
+  const merged = `${whole}${fractionDigits}`.replace(/^0+/, "");
+  return merged.length ? merged : "0";
 }
 
 export function metadataUriFromSlug(slug: string) {
