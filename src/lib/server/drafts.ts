@@ -2,7 +2,7 @@ import "server-only";
 
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import type { DraftRecord } from "@/lib/marketplace";
+import { normalizeAsset, type DraftRecord } from "@/lib/marketplace";
 
 type DraftStore = {
   drafts: Record<string, DraftRecord>;
@@ -32,7 +32,24 @@ async function ensureStore() {
 async function readStore() {
   await ensureStore();
   const raw = await readFile(STORE_PATH, "utf8");
-  return JSON.parse(raw) as DraftStore;
+  const parsed = JSON.parse(raw) as DraftStore;
+  return {
+    drafts: Object.fromEntries(
+      Object.entries(parsed.drafts ?? {}).map(([slug, draft]) => [
+        slug,
+        {
+          ...draft,
+          priceAtomic:
+            typeof draft.priceAtomic === "string" ? draft.priceAtomic : "0",
+          asset: normalizeAsset(
+            typeof draft.asset === "string" ? draft.asset : "STX",
+          ),
+          x402Enabled:
+            typeof draft.x402Enabled === "boolean" ? draft.x402Enabled : true,
+        } satisfies DraftRecord,
+      ]),
+    ),
+  } satisfies DraftStore;
 }
 
 async function writeStore(store: DraftStore) {
@@ -63,6 +80,9 @@ export async function createDraft(input: {
   summary: string;
   category: string;
   premiumContent: string;
+  priceAtomic: string;
+  asset: DraftRecord["asset"];
+  x402Enabled: boolean;
 }) {
   const store = await readStore();
   const slugBase = slugify(input.title) || "listing";
@@ -76,6 +96,9 @@ export async function createDraft(input: {
     summary: input.summary,
     category: input.category,
     premiumContent: input.premiumContent,
+    priceAtomic: input.priceAtomic,
+    asset: input.asset,
+    x402Enabled: input.x402Enabled,
     contractListingId: null,
     createTxId: null,
     publishTxId: null,
@@ -98,6 +121,13 @@ export async function updateDraft(slug: string, patch: Partial<DraftRecord>) {
   const next: DraftRecord = {
     ...current,
     ...patch,
+    priceAtomic:
+      typeof patch.priceAtomic === "string" ? patch.priceAtomic : current.priceAtomic,
+    asset: normalizeAsset(patch.asset ?? current.asset),
+    x402Enabled:
+      typeof patch.x402Enabled === "boolean"
+        ? patch.x402Enabled
+        : current.x402Enabled,
     updatedAt: new Date().toISOString(),
   };
 

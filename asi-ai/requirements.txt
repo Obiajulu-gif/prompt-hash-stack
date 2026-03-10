@@ -1,6 +1,0 @@
-uagents
-openai
-python-dotenv==1.0.1
-fastapi
-uvicorn[standard]
-Jinja2 

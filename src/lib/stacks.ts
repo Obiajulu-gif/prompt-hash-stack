@@ -1,6 +1,5 @@
 import {
   AnchorMode,
-  bytesToHex,
   Cl,
   makeUnsignedContractCall,
   makeUnsignedSTXTokenTransfer,
@@ -9,6 +8,10 @@ import {
 } from "@stacks/transactions";
 import { createNetwork } from "@stacks/network";
 import type { PaymentAsset } from "@/lib/marketplace";
+
+function toHex(bytes: Uint8Array) {
+  return Buffer.from(bytes).toString("hex");
+}
 
 export function normalizeTxHash(raw: string): string {
   const hex = raw.replace(/^0x/i, "").toLowerCase();
@@ -119,7 +122,7 @@ export async function createUnsignedPaymentTransaction(params: {
       memo: params.memo,
       anchorMode: AnchorMode.Any,
     });
-    return bytesToHex(tx.serialize());
+    return toHex(tx.serialize());
   }
 
   if (!params.tokenContract) {
@@ -145,7 +148,7 @@ export async function createUnsignedPaymentTransaction(params: {
     anchorMode: AnchorMode.Any,
   });
 
-  return bytesToHex(tx.serialize());
+  return toHex(tx.serialize());
 }
 
 export function getAssetColor(asset: PaymentAsset) {

@@ -10,6 +10,8 @@ import {
 type ListingsResponse = {
   listings: MarketplaceListing[];
   error?: string;
+  requiresConfiguration?: boolean;
+  unavailableReason?: string;
 };
 
 export function AgentConsole({ config }: { config: PublicAppConfig }) {
@@ -23,6 +25,14 @@ export function AgentConsole({ config }: { config: PublicAppConfig }) {
     async function load() {
       const response = await fetch("/api/listings", { cache: "no-store" });
       const payload = (await response.json()) as ListingsResponse;
+      if (payload.requiresConfiguration) {
+        setListings([]);
+        setSelectedListingId("");
+        setMessage(
+          payload.unavailableReason || "Marketplace contract not configured yet.",
+        );
+        return;
+      }
       if (!response.ok) {
         setMessage(payload.error || "Failed to load x402-enabled listings.");
         return;

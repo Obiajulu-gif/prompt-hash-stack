@@ -101,6 +101,31 @@ export async function getMarketplaceListings() {
     });
 }
 
+export async function getLocalDraftListings() {
+  const drafts = await listDrafts();
+
+  return drafts.map((draft, index) => ({
+    id: draft.contractListingId ?? index + 1,
+    seller: draft.seller,
+    title: draft.title,
+    summary: draft.summary,
+    metadataUri: metadataUriFromSlug(draft.slug),
+    asset: draft.asset,
+    priceAtomic: draft.priceAtomic,
+    tokenContract: null,
+    published: true,
+    x402Enabled: draft.x402Enabled,
+    purchaseCount: 0,
+    createdAt: Math.floor(new Date(draft.createdAt).getTime() / 1000),
+    slug: draft.slug,
+    category: draft.category,
+    preview: previewFromContent(draft.premiumContent),
+    contentLinked: Boolean(draft.premiumContent),
+    createTxId: draft.createTxId,
+    publishTxId: draft.publishTxId,
+  })) satisfies MarketplaceListing[];
+}
+
 export async function getListingWithDraft(id: number) {
   const listing = await getChainListing(id);
   if (!listing) {

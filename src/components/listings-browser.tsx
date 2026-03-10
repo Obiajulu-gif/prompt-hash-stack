@@ -25,6 +25,8 @@ import {
 type ListingsResponse = {
   listings: MarketplaceListing[];
   error?: string;
+  requiresConfiguration?: boolean;
+  unavailableReason?: string;
 };
 
 export function ListingsBrowser({ config }: { config: PublicAppConfig }) {
@@ -33,6 +35,8 @@ export function ListingsBrowser({ config }: { config: PublicAppConfig }) {
   const [listings, setListings] = useState<MarketplaceListing[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [localMode, setLocalMode] = useState(false);
   const [busyListingId, setBusyListingId] = useState<number | null>(null);
   const [messages, setMessages] = useState<Record<number, string>>({});
   const [unlockedContent, setUnlockedContent] = useState<Record<number, string>>(
@@ -42,9 +46,20 @@ export function ListingsBrowser({ config }: { config: PublicAppConfig }) {
   async function loadListings() {
     setLoading(true);
     setError(null);
+    setNotice(null);
+    setLocalMode(false);
     try {
       const response = await fetch("/api/listings", { cache: "no-store" });
       const payload = (await response.json()) as ListingsResponse;
+      if (payload.requiresConfiguration) {
+        setListings(payload.listings);
+        setLocalMode(true);
+        setNotice(
+          payload.unavailableReason ||
+            "Marketplace contract not configured. Showing local prompts only.",
+        );
+        return;
+      }
       if (!response.ok) {
         throw new Error(payload.error || "Failed to load marketplace listings.");
       }
@@ -63,11 +78,12 @@ export function ListingsBrowser({ config }: { config: PublicAppConfig }) {
   const emptyState = useMemo(
     () => (
       <div className="panel text-sm text-slate-300">
-        No published listings yet. Use the seller console to create the first
-        Stacks marketplace entry.
+        {localMode
+          ? "No local prompts yet. Use the seller console to save the first prompt."
+          : "No published listings yet. Use the seller console to create the first Stacks marketplace entry."}
       </div>
     ),
-    [],
+    [localMode],
   );
 
   async function ensureWallet() {
@@ -228,11 +244,20 @@ export function ListingsBrowser({ config }: { config: PublicAppConfig }) {
   }
 
   if (!listings.length) {
-    return emptyState;
+    return (
+      <div className="space-y-4">
+        {notice ? (
+          <div className="panel text-sm text-amber-100">{notice}</div>
+        ) : null}
+        {emptyState}
+      </div>
+    );
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-2">
+    <div className="space-y-4">
+      {notice ? <div className="panel text-sm text-amber-100">{notice}</div> : null}
+      <div className="grid gap-6 lg:grid-cols-2">
       {listings.map(listing => (
         <article key={listing.id} className="panel flex flex-col gap-5">
           <div className="flex flex-wrap items-start justify-between gap-4">
@@ -277,22 +302,37 @@ export function ListingsBrowser({ config }: { config: PublicAppConfig }) {
             </div>
           ) : null}
 
+          {localMode ? (
+            <div className="rounded-3xl border border-slate-700 bg-slate-950/50 p-4 text-sm text-slate-300">
+              This prompt is listed locally only. Configure <code>CONTRACT_ADDRESS</code>
+              to enable on-chain purchases and x402 access.
+            </div>
+          ) : null}
+
           <div className="flex flex-wrap gap-3">
             <button
               className="rounded-full bg-amber-300 px-4 py-2 text-sm font-medium text-slate-950 transition hover:bg-amber-200 disabled:cursor-not-allowed disabled:opacity-60"
-              disabled={busyListingId === listing.id}
+              disabled={busyListingId === listing.id || localMode}
               onClick={() => void buyOnChain(listing)}
               type="button"
             >
-              {busyListingId === listing.id ? "Waiting..." : "Buy on-chain"}
+              {localMode
+                ? "On-chain unavailable"
+                : busyListingId === listing.id
+                  ? "Waiting..."
+                  : "Buy on-chain"}
             </button>
             <button
               className="rounded-full border border-sky-300/50 px-4 py-2 text-sm text-sky-100 transition hover:bg-sky-400/10 disabled:cursor-not-allowed disabled:opacity-60"
-              disabled={busyListingId === listing.id || !listing.x402Enabled}
+              disabled={busyListingId === listing.id || !listing.x402Enabled || localMode}
               onClick={() => void unlockWithX402(listing)}
               type="button"
             >
-              {listing.x402Enabled ? "Buy via x402" : "x402 disabled"}
+              {localMode
+                ? "x402 unavailable"
+                : listing.x402Enabled
+                  ? "Buy via x402"
+                  : "x402 disabled"}
             </button>
           </div>
 
@@ -301,6 +341,7 @@ export function ListingsBrowser({ config }: { config: PublicAppConfig }) {
           ) : null}
         </article>
       ))}
+      </div>
     </div>
   );
 }

@@ -9,6 +9,7 @@ import {
   waitForTransaction,
 } from "@/lib/browser-marketplace";
 import {
+  formatAtomicAmount,
   normalizeAsset,
   parseDisplayAmount,
   type DraftRecord,
@@ -38,6 +39,7 @@ export function SellerConsole({ config }: { config: PublicAppConfig }) {
   const [drafts, setDrafts] = useState<DraftRecord[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const contractConfigured = config.contractAddress.includes(".");
 
   async function loadDrafts(currentAddress?: string | null) {
     if (!currentAddress) {
@@ -70,7 +72,7 @@ export function SellerConsole({ config }: { config: PublicAppConfig }) {
       walletAddress = await connectWallet();
     }
     if (!walletAddress) {
-      throw new Error("Connect Leather to publish listings.");
+      throw new Error("Connect Leather to create listings.");
     }
     return walletAddress;
   }
@@ -93,6 +95,9 @@ export function SellerConsole({ config }: { config: PublicAppConfig }) {
           summary: form.summary,
           category: form.category,
           premiumContent: form.premiumContent,
+          priceAtomic: atomicPrice,
+          asset: form.asset,
+          x402Enabled: form.x402Enabled,
         }),
       });
 
@@ -104,6 +109,15 @@ export function SellerConsole({ config }: { config: PublicAppConfig }) {
 
       if (!draftResponse.ok || !draftPayload.draft || !draftPayload.metadataUri) {
         throw new Error(draftPayload.error || "Failed to create the local listing draft.");
+      }
+
+      if (!contractConfigured) {
+        setForm(initialForm);
+        setMessage(
+          "Prompt saved locally. It now appears in Browse. Set CONTRACT_ADDRESS later to publish it on-chain.",
+        );
+        await loadDrafts(walletAddress);
+        return;
       }
 
       const txid = await callMarketplaceContract({
@@ -188,6 +202,13 @@ export function SellerConsole({ config }: { config: PublicAppConfig }) {
             Create, price, and publish a marketplace listing
           </h2>
         </div>
+        {!contractConfigured ? (
+          <div className="rounded-3xl border border-amber-300/30 bg-amber-300/10 p-4 text-sm text-amber-100">
+            Contract not configured. New prompts will be saved locally and shown in
+            Browse, but on-chain publishing stays disabled until <code>CONTRACT_ADDRESS</code>
+            is set.
+          </div>
+        ) : null}
 
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="text-sm text-slate-200">
@@ -276,7 +297,13 @@ export function SellerConsole({ config }: { config: PublicAppConfig }) {
           disabled={submitting}
           type="submit"
         >
-          {submitting ? "Publishing..." : "Create and publish"}
+          {submitting
+            ? contractConfigured
+              ? "Publishing..."
+              : "Saving..."
+            : contractConfigured
+              ? "Create and publish"
+              : "Save prompt locally"}
         </button>
 
         {message ? <p className="text-sm text-slate-300">{message}</p> : null}
@@ -311,6 +338,18 @@ export function SellerConsole({ config }: { config: PublicAppConfig }) {
               <div>
                 <span className="label-muted">Publish tx</span>
                 <p className="mt-1 break-all">{draft.publishTxId || "Pending"}</p>
+              </div>
+              <div>
+                <span className="label-muted">Price</span>
+                <p className="mt-1 break-all">
+                  {formatAtomicAmount(draft.priceAtomic, draft.asset)} {draft.asset}
+                </p>
+              </div>
+              <div>
+                <span className="label-muted">x402</span>
+                <p className="mt-1 break-all">
+                  {draft.x402Enabled ? "Enabled" : "Disabled"}
+                </p>
               </div>
             </div>
           </div>

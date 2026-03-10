@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { metadataUriFromSlug } from "@/lib/marketplace";
+import { metadataUriFromSlug, normalizeAsset } from "@/lib/marketplace";
 import { createDraft, listDraftsBySeller } from "@/lib/server/drafts";
 
 function readQuerySeller(request: NextRequest) {
@@ -37,6 +37,9 @@ export async function POST(request: NextRequest) {
       summary?: string;
       category?: string;
       premiumContent?: string;
+      priceAtomic?: string;
+      asset?: string;
+      x402Enabled?: boolean;
     };
 
     if (!body.seller?.trim()) {
@@ -54,6 +57,12 @@ export async function POST(request: NextRequest) {
         { status: 400 },
       );
     }
+    if (!body.priceAtomic?.trim()) {
+      return NextResponse.json(
+        { error: "priceAtomic is required." },
+        { status: 400 },
+      );
+    }
 
     const draft = await createDraft({
       seller: body.seller.trim(),
@@ -61,6 +70,9 @@ export async function POST(request: NextRequest) {
       summary: body.summary.trim(),
       category: body.category?.trim() || "Agent service",
       premiumContent: body.premiumContent.trim(),
+      priceAtomic: body.priceAtomic.trim(),
+      asset: normalizeAsset(body.asset),
+      x402Enabled: body.x402Enabled !== false,
     });
 
     return NextResponse.json({

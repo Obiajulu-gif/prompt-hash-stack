@@ -30,6 +30,12 @@ export function getContractAddress() {
   return process.env.CONTRACT_ADDRESS?.trim() || "";
 }
 
+export function hasContractAddress() {
+  const contractId = getContractAddress();
+  const [address, name] = contractId.split(".");
+  return Boolean(address && name);
+}
+
 export function getContractParts() {
   const contractId = getContractAddress();
   const [address, name] = contractId.split(".");

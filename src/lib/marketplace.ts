@@ -13,6 +13,9 @@ export type DraftRecord = {
   summary: string;
   category: string;
   premiumContent: string;
+  priceAtomic: string;
+  asset: PaymentAsset;
+  x402Enabled: boolean;
   contractListingId: number | null;
   createTxId: string | null;
   publishTxId: string | null;
