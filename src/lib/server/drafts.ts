@@ -1,6 +1,7 @@
 import "server-only";
 
 import { mkdir, readFile, writeFile } from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 import { normalizeAsset, type DraftRecord } from "@/lib/marketplace";
 
@@ -8,7 +9,20 @@ type DraftStore = {
   drafts: Record<string, DraftRecord>;
 };
 
-const DATA_DIR = path.join(process.cwd(), "data", "runtime");
+function resolveDataDir() {
+  const configured = process.env.DRAFTS_STORE_DIR?.trim();
+  if (configured) {
+    return path.resolve(configured);
+  }
+
+  if (process.env.VERCEL) {
+    return path.join(os.tmpdir(), "prompt-hash-x402", "runtime");
+  }
+
+  return path.join(process.cwd(), "data", "runtime");
+}
+
+const DATA_DIR = resolveDataDir();
 const STORE_PATH = path.join(DATA_DIR, "drafts.json");
 
 function slugify(value: string) {
