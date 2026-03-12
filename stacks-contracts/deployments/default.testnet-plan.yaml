@@ -17,21 +17,21 @@ plan:
     - transaction-type: contract-publish
       contract-name: mock-sbtc-token
       expected-sender: ST16K4ZYM14WPG9GZQ5BPXNQAEVTJPRMA4VWJCXYY
-      cost: 14050
+      cost: 14690
       path: contracts/mock-sbtc-token.clar
       anchor-block-only: true
       clarity-version: 4
     - transaction-type: contract-publish
       contract-name: mock-usdcx-token
       expected-sender: ST16K4ZYM14WPG9GZQ5BPXNQAEVTJPRMA4VWJCXYY
-      cost: 14120
+      cost: 14760
       path: contracts/mock-usdcx-token.clar
       anchor-block-only: true
       clarity-version: 4
     - transaction-type: contract-publish
       contract-name: prompt-marketplace
       expected-sender: ST16K4ZYM14WPG9GZQ5BPXNQAEVTJPRMA4VWJCXYY
-      cost: 94130
+      cost: 95730
       path: contracts/prompt-marketplace.clar
       anchor-block-only: true
       clarity-version: 4
