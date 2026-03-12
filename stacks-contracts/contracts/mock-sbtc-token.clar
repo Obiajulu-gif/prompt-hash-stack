@@ -15,6 +15,7 @@
   (begin
     (asserts! (is-eq tx-sender contract-owner) err-owner-only)
     (asserts! (> amount u0) err-invalid-amount)
+    ;; #[allow(unchecked_data)]
     (try! (ft-mint? mock-sbtc-token amount recipient))
     (ok true)
   )
@@ -30,6 +31,7 @@
     (asserts! (> amount u0) err-invalid-amount)
     (asserts! (is-eq tx-sender sender) err-not-token-owner)
     (match memo memo-value (print memo-value) 0x00)
+    ;; #[allow(unchecked_data)]
     (try! (ft-transfer? mock-sbtc-token amount sender recipient))
     (ok true)
   )

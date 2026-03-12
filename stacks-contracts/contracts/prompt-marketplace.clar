@@ -73,6 +73,7 @@
   )
 )
 
+;; #[allow(unchecked_params)]
 (define-private (assert-valid-asset-config (asset uint) (token-contract (optional principal)))
   (begin
     (asserts! (is-valid-asset asset) err-invalid-asset)
@@ -84,6 +85,7 @@
   )
 )
 
+;; #[allow(unchecked_params)]
 (define-private (assert-listing-fields
   (title (string-utf8 64))
   (summary (string-utf8 256))
@@ -150,6 +152,7 @@
 (define-public (set-access-recorder (new-recorder principal))
   (begin
     (asserts! (is-eq tx-sender contract-owner) err-owner-only)
+    ;; #[allow(unchecked_data)]
     (var-set access-recorder new-recorder)
     (ok new-recorder)
   )
@@ -301,10 +304,12 @@
       (asserts! (get x402-enabled listing) err-x402-disabled)
       (asserts! (not (is-eq buyer (get seller listing))) err-invalid-buyer)
       (asserts! (is-none (map-get? settled-payments { payment-ref: payment-ref })) err-duplicate-payment)
+      ;; #[allow(unchecked_data)]
       (map-set settled-payments
         { payment-ref: payment-ref }
         { listing-id: listing-id, buyer: buyer, recorded-at: stacks-block-height }
       )
+      ;; #[allow(unchecked_data)]
       (try! (set-access listing-id listing buyer purchase-kind-x402 (some payment-ref)))
       (ok true)
     )
