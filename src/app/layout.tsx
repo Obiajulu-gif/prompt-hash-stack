@@ -39,11 +39,21 @@ export default function RootLayout({
 }>) {
   const network =
     process.env.STACKS_NETWORK === "mainnet" ? "mainnet" : "testnet";
+  const approvedProviderIds =
+    process.env.NEXT_PUBLIC_STACKS_WALLET_PROVIDERS?.split(",")
+      .map(value => value.trim())
+      .filter(Boolean) || ["LeatherProvider", "XverseProviders.BitcoinProvider"];
+  const walletConnectProjectId =
+    process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID?.trim() || undefined;
 
   return (
     <html lang="en">
       <body className={`${display.variable} ${mono.variable}`}>
-        <StacksWalletProvider network={network}>
+        <StacksWalletProvider
+          approvedProviderIds={approvedProviderIds}
+          network={network}
+          walletConnectProjectId={walletConnectProjectId}
+        >
           {children}
           <Toaster />
         </StacksWalletProvider>

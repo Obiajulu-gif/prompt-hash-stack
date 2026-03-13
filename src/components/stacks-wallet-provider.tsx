@@ -13,6 +13,7 @@ import { toast } from "sonner";
 
 type ConnectModule = typeof import("@stacks/connect");
 type WalletNetwork = "mainnet" | "testnet";
+type RequestFn = ConnectModule["request"];
 
 type StacksWalletContextValue = {
   address: string | null;
@@ -56,6 +57,11 @@ const knownProviderIds = new Set([
   "WalletConnectProvider",
 ]);
 
+const DEFAULT_APPROVED_PROVIDER_IDS = [
+  "LeatherProvider",
+  "XverseProviders.BitcoinProvider",
+];
+
 function normalizeProviderId(value: string): string | null {
   const trimmed = value.trim().replace(/^['"]|['"]$/g, "");
   if (!trimmed) return null;
@@ -73,6 +79,20 @@ async function loadConnectModule(): Promise<ConnectModule> {
     connectModulePromise = import("@stacks/connect");
   }
   return connectModulePromise;
+}
+
+function normalizeApprovedProviders(
+  approvedProviderIds: string[] | undefined,
+): string[] {
+  const normalized = Array.from(
+    new Set(
+      (approvedProviderIds ?? DEFAULT_APPROVED_PROVIDER_IDS)
+        .map(normalizeProviderId)
+        .filter((provider): provider is string => Boolean(provider)),
+    ),
+  );
+
+  return normalized.length > 0 ? normalized : DEFAULT_APPROVED_PROVIDER_IDS;
 }
 
 function pickAddressFromEntries(entries: unknown): string | null {
@@ -184,6 +204,22 @@ async function walletRequest(
   throw new Error(`Wallet request failed for method: ${method}`);
 }
 
+async function requestGetAddressesWithOptions(params: {
+  request: RequestFn;
+  options: Record<string, unknown>;
+  network: WalletNetwork;
+}) {
+  const requestAny = params.request as unknown as (
+    options: Record<string, unknown>,
+    method: string,
+    methodParams?: Record<string, unknown>,
+  ) => Promise<unknown>;
+
+  return requestAny(params.options, "getAddresses", {
+    network: params.network,
+  });
+}
+
 function isUserCancellation(error: unknown): boolean {
   const message = String(
     (error as { message?: string } | null)?.message || "",
@@ -214,20 +250,13 @@ type StacksWalletProviderProps = {
 export function StacksWalletProvider({
   children,
   network,
-  approvedProviderIds = ["LeatherProvider"],
+  approvedProviderIds,
   walletConnectProjectId,
 }: StacksWalletProviderProps) {
   const [address, setAddress] = useState<string | null>(null);
   const [connecting, setConnecting] = useState(false);
   const approvedProviders = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          approvedProviderIds
-            .map(normalizeProviderId)
-            .filter((provider): provider is string => Boolean(provider)),
-        ),
-      ),
+    () => normalizeApprovedProviders(approvedProviderIds),
     [approvedProviderIds],
   );
   const addressNetwork = useMemo(() => getAddressNetwork(address), [address]);
@@ -263,7 +292,7 @@ export function StacksWalletProvider({
   const connectWallet = useCallback(async () => {
     setConnecting(true);
     try {
-      const { connect } = await loadConnectModule();
+      const { connect, request } = await loadConnectModule();
       const baseOptions = {
         network,
         forceWalletSelect: true,
@@ -271,21 +300,46 @@ export function StacksWalletProvider({
           ? { walletConnectProjectId }
           : {}),
       };
+      const approvedOptions =
+        approvedProviders.length > 0
+          ? { approvedProviderIds: approvedProviders }
+          : {};
 
       let response: unknown;
       try {
         response = await connect({
           ...baseOptions,
-          ...(approvedProviders.length > 0
-            ? { approvedProviderIds: approvedProviders }
-            : {}),
+          ...approvedOptions,
         });
       } catch (error) {
-        if (approvedProviders.length === 0 || isUserCancellation(error)) {
+        if (isUserCancellation(error)) {
           throw error;
         }
-        // Fallback for misconfigured provider allowlist in env.
-        response = await connect(baseOptions);
+
+        try {
+          response = await requestGetAddressesWithOptions({
+            request,
+            options: {
+              ...baseOptions,
+              ...approvedOptions,
+            },
+            network,
+          });
+        } catch (requestError) {
+          if (approvedProviders.length === 0 || isUserCancellation(requestError)) {
+            throw requestError;
+          }
+
+          try {
+            response = await connect(baseOptions);
+          } catch {
+            response = await requestGetAddressesWithOptions({
+              request,
+              options: baseOptions,
+              network,
+            });
+          }
+        }
       }
 
       const nextAddress = extractWalletAddress(response) || (await refreshWallet());
