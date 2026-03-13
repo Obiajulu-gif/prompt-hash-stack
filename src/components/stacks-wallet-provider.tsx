@@ -144,16 +144,44 @@ async function walletRequest(
     params?: Record<string, unknown>,
   ) => Promise<unknown>;
 
+  let directError: unknown;
   try {
     return await requestAny(method, params);
-  } catch {
-    try {
-      return await requestAny({ method, params });
-    } catch {
-      if (!params) return requestAny(method);
-      throw new Error(`Wallet request failed for method: ${method}`);
-    }
+  } catch (error) {
+    directError = error;
   }
+
+  let objectStyleError: unknown;
+  try {
+    return await requestAny({ method, params });
+  } catch (error) {
+    objectStyleError = error;
+  }
+
+  if (!params) {
+    return requestAny(method);
+  }
+
+  const errorMessages = [directError, objectStyleError]
+    .map(error => {
+      if (!error || typeof error !== "object") return null;
+      const value = error as { message?: string; code?: number | string };
+      if (typeof value.message === "string" && value.message.trim()) {
+        return typeof value.code !== "undefined"
+          ? `${value.message} (code ${value.code})`
+          : value.message;
+      }
+      return null;
+    })
+    .filter((message): message is string => Boolean(message));
+
+  if (errorMessages.length > 0) {
+    throw new Error(
+      `Wallet request failed for method: ${method}. ${errorMessages.join(" | ")}`,
+    );
+  }
+
+  throw new Error(`Wallet request failed for method: ${method}`);
 }
 
 function isUserCancellation(error: unknown): boolean {

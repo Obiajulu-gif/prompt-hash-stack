@@ -1,6 +1,6 @@
 "use client";
 
-import { Cl } from "@stacks/transactions";
+import { Cl, cvToHex } from "@stacks/transactions";
 import {
   assetSymbolToCode,
   type ListingFormPayload,
@@ -26,10 +26,19 @@ export async function callMarketplaceContract(params: {
   functionName: string;
   functionArgs: unknown[];
 }) {
+  const { address, name } = parseContractId(params.config.contractAddress);
+  const functionArgs = params.functionArgs.map(arg =>
+    typeof arg === "string" ? arg : cvToHex(arg as Parameters<typeof cvToHex>[0]),
+  );
+
   const response = await params.requestWallet("stx_callContract", {
+    contractAddress: address,
+    contractName: name,
     contract: params.config.contractAddress,
     functionName: params.functionName,
-    functionArgs: params.functionArgs,
+    functionArgs,
+    postConditionMode: "deny",
+    postConditions: [],
     network: params.config.network,
   });
 
